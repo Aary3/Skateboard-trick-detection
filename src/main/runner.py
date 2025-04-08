@@ -2,6 +2,8 @@ from photoDetector import PhotoDetector
 from videoDetector import VideoDetector
 from detectionVisualizer import detectionVisualizer
 from sys import exit
+import pandas as pd
+
 
 def main():
     modelType = input("Enter model type (normal/pose): ").strip().lower()
@@ -31,6 +33,30 @@ def main():
         detector = PhotoDetector(model_path=pathToModel)
         # Perform detection on the image
         results = detector.detect(path_to_image)
+
+        # Print the results
+        if modelType == "pose":
+            print("Pose Detection Results:")
+            print(results[0].keypoints.xy)                  #keypoints in xy format
+            keypoints = results[0].keypoints.xy.cpu().numpy()
+            keypointsconf = results[0].keypoints.conf.cpu().numpy()
+            i = 1
+            for keypoint in keypoints:                  #keypoints is a list of numpy arrays, each array is a list of keypoints
+                tempDataFrame = pd.DataFrame(keypoint, columns=["x", "y"])
+                tempDataFrame["confidence"] = keypointsconf[i-1]
+                if i == 1:
+                    poseDataFrame = tempDataFrame
+                else:
+                    poseDataFrame = pd.concat([poseDataFrame, tempDataFrame], axis=0)
+                i += 1
+            print(poseDataFrame)
+        else:
+            print("Object Detection Results:")
+            print(results[0].boxes.xyxy)                    #bounding boxes in xyxy format
+            positionDataFrame = pd.DataFrame(results[0].boxes.xyxy.cpu().numpy(), columns=["x1", "y1", "x2", "y2"])
+            positionDataFrame["confidence"] = results[0].boxes.conf.cpu().numpy()
+            positionDataFrame["class"] = results[0].boxes.cls.cpu().numpy()
+            print(positionDataFrame)
 
         # Create a detectionVisualizer instance and visualize the image
         visualizer = detectionVisualizer(results=results)
