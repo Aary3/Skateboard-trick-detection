@@ -26,15 +26,15 @@ def main():
         results = detector.detect(path_to_video)
         poseDataFrame = detector.createPoseDataFrame(results)          #create pose dataframe
 
-        #detector.setModel("models/yolo/COCO pretrained/yolo11n.pt")
-        #detector.setClassesToTrack([36])                               # 36: skateboard
-        #results = detector.detect(path_to_video)                                #detect again with normal model
-        #positionDataFrame = detector.createPositionDataFrame(results)
+        detector.setModel("models/yolo/COCO pretrained/yolo11n.pt")
+        detector.setClassesToTrack([36])                               # 36: skateboard
+        results = detector.detect(path_to_video)                                #detect again with normal model
+        positionDataFrame = detector.createPositionDataFrame(results)
 
         fullDataFrame = detector.createFullDataFrame(positionDataFrame, poseDataFrame)          #create full dataframe
         fullDataFrame = detector.cleanUpFullDataFrame(fullDataFrame)          #clean up full dataframe
-        finalDataFrame = detector.createFinalDataFrame(fullDataFrame)          #create final dataframe
-        print(finalDataFrame)
+        #finalDataFrame = detector.createFinalDataFrame(fullDataFrame)          #create final dataframe
+        print(fullDataFrame)
         
 
         # Create a detectionVisualizer instance and visualize the video
