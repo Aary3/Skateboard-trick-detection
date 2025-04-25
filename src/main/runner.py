@@ -4,21 +4,88 @@ from detectionVisualizer import detectionVisualizer
 from sys import exit
 import pandas as pd
 import torch
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from LSTMmodel import LSTMmodel
+from LSTMtrain import LSTMtrain
 
 
 def main():
-    modelType = input("Enter model type (normal/pose/full): ").strip().lower()
+    #a1 = [f"kx{i//2+1}" if i%2==0 else f"ky{i//2+1}" for i in range(34)]
+    #a2 =[f"poseConfidence{i+1}" for i in range(17)]
+    #print(a1+a2)
+    #modelType = input("Enter model type (normal/pose/full): ").strip().lower()
     # Load a pretrained YOLO11n model
-    if(modelType == "pose"):
-        pathToModel = "models/yolo/COCO pretrained/yolo11n-pose.pt"
-    else:
-        pathToModel = "models/yolo/COCO pretrained/yolo11n.pt"
+    #if(modelType == "pose"):
+    #    pathToModel = "models/yolo/COCO pretrained/yolo11n-pose.pt"
+    #else:
+    #    pathToModel = "models/yolo/COCO pretrained/yolo11n.pt"
 
     #get input and visualize
     inputType = input("Enter input type (video/photo): ").strip().lower()
     if inputType == "video":
+        X = []
+        y = []
         # Get path to video
-        path_to_video = input("Enter path to video: ")                              #src\test\test_inputs\eltoro.mp4
+        #path_to_video = input("Enter path to video: ")                              #src/test/test_inputs/short.mp4         src/test/test_inputs/kickflip0.mov
+
+        extractFeatures("Kickflip", 2, X, y)
+        extractFeatures("Ollie", 2, X, y)
+
+        
+        X = np.array(X)
+        y = np.array(y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+        X_train = X_train.reshape((X_train.shape[0], X_train.shape[1]*X_train.shape[2], 1))
+        X_test = X_test.reshape((X_test.shape[0], X_test.shape[1]*X_test.shape[2], 1))
+        print("X_train:\n", X_train)
+        print("y_train:\n", y_train)
+        print("X_test:\n", X_test)
+        print("y_test:\n", y_test)
+
+        #training
+        model = LSTMmodel(X_train.shape(), 1)
+        trainer = LSTMtrain(model)
+        trainer.train(X_train, y_train)
+        
+
+        # Create a detectionVisualizer instance and visualize the video
+        #visualizer = detectionVisualizer(results=results)
+        #visualizer.visualizeVideo(path_to_video)
+    else:
+        # Get path to image
+        path_to_image = input("Enter path to image: ")                              #src/test/test_inputs/skater.jpg
+        # Create a PhotoDetector instance
+        detector = PhotoDetector(model_path="models/yolo/COCO pretrained/yolo11n-pose.pt")
+        # Perform detection on the image
+        results = detector.detect(path_to_image)
+
+        # Print the results
+        keypoints = results[0].keypoints.xy.cpu().numpy()
+        keypointsconf = results[0].keypoints.conf.cpu().numpy()
+        i = 1
+        for keypoint in keypoints:                  #keypoints is a list of numpy arrays, each array is a list of keypoints
+            tempDataFrame = pd.DataFrame(keypoint, columns=["x", "y"])
+            tempDataFrame["confidence"] = keypointsconf[i-1]
+            if i == 1:
+                poseDataFrame = tempDataFrame
+            else:
+                poseDataFrame = pd.concat([poseDataFrame, tempDataFrame], axis=0)
+            i += 1
+        print(poseDataFrame)
+        positionDataFrame = pd.DataFrame(results[0].boxes.xyxy.cpu().numpy(), columns=["x1", "y1", "x2", "y2"])
+        positionDataFrame["confidence"] = results[0].boxes.conf.cpu().numpy()
+        #positionDataFrame["class"] = results[0].boxes.cls.cpu().numpy()
+        print(positionDataFrame)
+
+        # Create a detectionVisualizer instance and visualize the image
+        visualizer = detectionVisualizer(results=results)
+        visualizer.visualizePhoto()
+    
+def extractFeatures(trickName, endRange, X, y):                       #trickName = Kickflip/Ollie
+    for i in range(0, endRange):
+        path_to_video = f"src/test/Tricks/{trickName}/{trickName}{i}.mov"
         # Create a VideoDetector instance
         detector = VideoDetector(model_path="models/yolo/COCO pretrained/yolo11n-pose.pt")
         detector.setClassesToTrack([0])                               # 0: person
@@ -33,45 +100,14 @@ def main():
 
         fullDataFrame = detector.createFullDataFrame(positionDataFrame, poseDataFrame)          #create full dataframe
         fullDataFrame = detector.cleanUpFullDataFrame(fullDataFrame)          #clean up full dataframe
+                                                                                                                   #TODO - ensure homogenius data frame shapes (amount of rows)
         #finalDataFrame = detector.createFinalDataFrame(fullDataFrame)          #create final dataframe
         print(fullDataFrame)
+        #scaler = MinMaxScaler(feature_range=(0,1))
+        #scaledFullDataFrame = scaler.fit_transform(fullDataFrame)          #scale data to 0-1
+        X.append(fullDataFrame.astype(np.float32).values)
+        y.append(trickName)          #append label to y
         
-
-        # Create a detectionVisualizer instance and visualize the video
-        visualizer = detectionVisualizer(results=results)
-        visualizer.visualizeVideo(path_to_video)
-    else:
-        # Get path to image
-        path_to_image = input("Enter path to image: ")                              #src\test\test_inputs\skater.jpg
-        # Create a PhotoDetector instance
-        detector = PhotoDetector(model_path=pathToModel)
-        # Perform detection on the image
-        results = detector.detect(path_to_image)
-
-        # Print the results
-        if modelType == "pose":
-            keypoints = results[0].keypoints.xy.cpu().numpy()
-            keypointsconf = results[0].keypoints.conf.cpu().numpy()
-            i = 1
-            for keypoint in keypoints:                  #keypoints is a list of numpy arrays, each array is a list of keypoints
-                tempDataFrame = pd.DataFrame(keypoint, columns=["x", "y"])
-                tempDataFrame["confidence"] = keypointsconf[i-1]
-                if i == 1:
-                    poseDataFrame = tempDataFrame
-                else:
-                    poseDataFrame = pd.concat([poseDataFrame, tempDataFrame], axis=0)
-                i += 1
-            print(poseDataFrame)
-        else:
-            positionDataFrame = pd.DataFrame(results[0].boxes.xyxy.cpu().numpy(), columns=["x1", "y1", "x2", "y2"])
-            positionDataFrame["confidence"] = results[0].boxes.conf.cpu().numpy()
-            #positionDataFrame["class"] = results[0].boxes.cls.cpu().numpy()
-            print(positionDataFrame)
-
-        # Create a detectionVisualizer instance and visualize the image
-        visualizer = detectionVisualizer(results=results)
-        visualizer.visualizePhoto()
-    
 
 if __name__ == "__main__":
     main()

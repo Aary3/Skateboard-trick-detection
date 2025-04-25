@@ -4,6 +4,9 @@ import numpy as np
 import torch
 
 class VideoDetector:
+    kList = [f"kx{i//2+1}" if i%2==0 else f"ky{i//2+1}" for i in range(34)]
+    poseConfidenceList = [f"poseConfidence{i+1}" for i in range(17)]
+
     def __init__(self, model_path):
         self.model = YOLO(model_path)
         self.classes = [0, 36]                               # 0: person, 36: skateboard
@@ -19,15 +22,15 @@ class VideoDetector:
         return results
     
     def createPoseDataFrame(self, results):
-        poseDataFrame = pd.DataFrame([(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)], columns=["kx1", "ky1", "kx2", "ky2", "kx3", "ky3", "kx4", "ky4", "kx5", "ky5", "kx6", "ky6", "kx7", "ky7", "kx8", "ky8", "kx9", "ky9", "kx10", "ky10", "kx11", "ky11", "kx12", "ky12", "kx13", "ky13", "kx14", "ky14", "kx15", "ky15", "kx16", "ky16", "kx17", "ky17", "poseConfidence1", "poseConfidence2", "poseConfidence3", "poseConfidence4", "poseConfidence5", "poseConfidence6", "poseConfidence7", "poseConfidence8", "poseConfidence9", "poseConfidence10", "poseConfidence11", "poseConfidence12", "poseConfidence13", "poseConfidence14", "poseConfidence15", "poseConfidence16", "poseConfidence17"])
+        poseDataFrame = pd.DataFrame([tuple(1 for i in range(0,51))], columns=self.kList+self.poseConfidenceList)          #create empty dataframe with 34 columns for keypoints and 17 columns for pose confidence
         for result in results:
             if ((result.keypoints.xy is None) or (result.keypoints.conf is None)):
                 poseDataFrame.loc[len(poseDataFrame)] = None
                 continue
             keypoints = result.keypoints.xy.cpu().numpy()
             #keypointsconf = result.keypoints.conf.cpu().numpy()
-            tempDataFrame = pd.DataFrame(keypoints[0].reshape(1,34), columns=["kx1", "ky1", "kx2", "ky2", "kx3", "ky3", "kx4", "ky4", "kx5", "ky5", "kx6", "ky6", "kx7", "ky7", "kx8", "ky8", "kx9", "ky9", "kx10", "ky10", "kx11", "ky11", "kx12", "ky12", "kx13", "ky13", "kx14", "ky14", "kx15", "ky15", "kx16", "ky16", "kx17", "ky17"])          #reshape keypoints to 1 row and 34 columns
-            poseConfDataFrame = pd.DataFrame(result.keypoints.conf.cpu().numpy()[0].reshape(1,17), columns=["poseConfidence1", "poseConfidence2", "poseConfidence3", "poseConfidence4", "poseConfidence5", "poseConfidence6", "poseConfidence7", "poseConfidence8", "poseConfidence9", "poseConfidence10", "poseConfidence11", "poseConfidence12", "poseConfidence13", "poseConfidence14", "poseConfidence15", "poseConfidence16", "poseConfidence17"])          #create dataframe for pose confidence
+            tempDataFrame = pd.DataFrame(keypoints[0].reshape(1,34), columns=self.kList)          #reshape keypoints to 1 row and 34 columns
+            poseConfDataFrame = pd.DataFrame(result.keypoints.conf.cpu().numpy()[0].reshape(1,17), columns=self.poseConfidenceList)          #create dataframe for pose confidence
             tempDataFrame = pd.concat([tempDataFrame, poseConfDataFrame], axis=1)          #concatenate keypoints and pose confidence dataframes
             poseDataFrame = pd.concat([poseDataFrame, tempDataFrame])          #append keypoints to dataframe
         poseDataFrame = poseDataFrame.iloc[1:]         #remove first row of dataframe
@@ -79,26 +82,30 @@ class VideoDetector:
         return fullDataFrame
     
     def cleanUpFullDataFrame(self, fullDataFrame):
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['positionConfidence'] < 0.3].index, inplace=True)            #remove rows with confidence < 0.5
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence1'] < 0.3].index, inplace=True)            #remove rows with confidence < 0.5
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence2'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence3'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence4'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence5'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence6'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence7'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence8'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence9'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence10'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence11'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence12'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence13'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence14'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence15'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence16'] < 0.3].index, inplace=True)
-        fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence17'] < 0.3].index, inplace=True)
-        fullDataFrame.dropna(inplace=True, how='any')            #remove rows with NaN values
-        fullDataFrame.drop(columns=["positionConfidence", "poseConfidence1", "poseConfidence2", "poseConfidence3", "poseConfidence4", "poseConfidence5", "poseConfidence6", "poseConfidence7", "poseConfidence8", "poseConfidence9", "poseConfidence10", "poseConfidence11", "poseConfidence12", "poseConfidence13", "poseConfidence14", "poseConfidence15", "poseConfidence16", "poseConfidence17"], inplace=True)            #remove confidence columns
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['positionConfidence'] < 0.3].index, inplace=True)            #remove rows with confidence < 0.5
+        #for i in range(1, 18):
+        #    fullDataFrame.drop(fullDataFrame[fullDataFrame[f'poseConfidence{i}'] < 0.3].index, inplace=True)            #remove rows with confidence < 0.5
+
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence1'] < 0.3].index, inplace=True)            #remove rows with confidence < 0.5
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence2'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence3'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence4'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence5'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence6'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence7'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence8'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence9'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence10'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence11'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence12'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence13'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence14'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence15'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence16'] < 0.3].index, inplace=True)
+        #fullDataFrame.drop(fullDataFrame[fullDataFrame['poseConfidence17'] < 0.3].index, inplace=True)
+        
+        #fullDataFrame.dropna(inplace=True, how='any')            #remove rows with NaN values
+        fullDataFrame.drop(columns=["positionConfidence"]+self.poseConfidenceList, inplace=True)            #remove confidence columns
         fullDataFrame = fullDataFrame.reset_index(drop=True)
         return fullDataFrame
     
@@ -116,3 +123,7 @@ class VideoDetector:
         #finalDataFrame = pd.DataFrame([positionTensor, poseTensor], columns=["position", "pose"])
         #finalDataFrame = finalDataFrame.reset_index(drop=True)
         #return finalDataFrame
+    
+    def createTensor(sekf, fullDataFrame):
+        fullTensor = torch.tensor(fullDataFrame.values, dtype=torch.float32)
+        return fullTensor

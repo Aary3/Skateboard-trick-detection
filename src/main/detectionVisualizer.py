@@ -15,7 +15,7 @@ class detectionVisualizer:
 
     def visualizeVideo(self, path_to_video):
         # Display the video with detections
-        output_filename = path_to_video.replace('.mp4', '_output.avi')
+        output_filename = path_to_video.replace('.mp4   ', '_output.avi')
         # output_filename = "c:/Users/piotr/OneDrive/Pulpit/YOLo/testout.avi"
         fps = 8  # Adjust based on input video
         frame_size = (640, 384)  # Modify based on your video resolution
