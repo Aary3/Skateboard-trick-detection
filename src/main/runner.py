@@ -11,6 +11,7 @@ from LSTMmodel import LSTMmodel
 from LSTMtrain import LSTMtrain
 
 
+
 def main():
     #a1 = [f"kx{i//2+1}" if i%2==0 else f"ky{i//2+1}" for i in range(34)]
     #a2 =[f"poseConfidence{i+1}" for i in range(17)]
@@ -30,23 +31,23 @@ def main():
         # Get path to video
         #path_to_video = input("Enter path to video: ")                              #src/test/test_inputs/short.mp4         src/test/test_inputs/kickflip0.mov
 
-        extractFeatures("Kickflip", 2, X, y)
-        extractFeatures("Ollie", 2, X, y)
+        extractFeatures(1, 2, X, y)     #trickID = 1 -> trickName = Kickflip
+        extractFeatures(0, 2, X, y)     #trickID = 0 -> trickName = Ollie
 
         
         X = np.array(X)
         y = np.array(y)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
-        X_train = X_train.reshape((X_train.shape[0], X_train.shape[1]*X_train.shape[2], 1))
-        X_test = X_test.reshape((X_test.shape[0], X_test.shape[1]*X_test.shape[2], 1))
+        #X_train = X_train.reshape((X_train.shape[0], X_train.shape[1]*X_train.shape[2], 1))
+        #X_test = X_test.reshape((X_test.shape[0], X_test.shape[1]*X_test.shape[2], 1))
         print("X_train:\n", X_train)
         print("y_train:\n", y_train)
         print("X_test:\n", X_test)
         print("y_test:\n", y_test)
 
         #training
-        model = LSTMmodel(X_train.shape(), 1)
-        trainer = LSTMtrain(model)
+        model = LSTMmodel(X_train[0].shape, 1)
+        trainer = LSTMtrain(model, 'lstm')
         trainer.train(X_train, y_train)
         
 
@@ -83,7 +84,11 @@ def main():
         visualizer = detectionVisualizer(results=results)
         visualizer.visualizePhoto()
     
-def extractFeatures(trickName, endRange, X, y):                       #trickName = Kickflip/Ollie
+def extractFeatures(trickID, endRange, X, y):                       #trickName = Kickflip/Ollie
+    if trickID == 0:
+        trickName = "Ollie"
+    elif trickID == 1:
+        trickName = "Kickflip"
     for i in range(0, endRange):
         path_to_video = f"src/test/Tricks/{trickName}/{trickName}{i}.mov"
         # Create a VideoDetector instance
@@ -103,10 +108,11 @@ def extractFeatures(trickName, endRange, X, y):                       #trickName
                                                                                                                    #TODO - ensure homogenius data frame shapes (amount of rows)
         #finalDataFrame = detector.createFinalDataFrame(fullDataFrame)          #create final dataframe
         print(fullDataFrame)
-        #scaler = MinMaxScaler(feature_range=(0,1))
-        #scaledFullDataFrame = scaler.fit_transform(fullDataFrame)          #scale data to 0-1
-        X.append(fullDataFrame.astype(np.float32).values)
-        y.append(trickName)          #append label to y
+        fullDataFrame.dropna(inplace=True)          #drop rows with NaN values
+        scaler = MinMaxScaler(feature_range=(0,1))
+        scaledFullDataFrame = scaler.fit_transform(fullDataFrame.iloc[:10].astype(np.float32).values)          #scale data to 0-1
+        X.append(scaledFullDataFrame)
+        y.append(trickID)          #append label to y
         
 
 if __name__ == "__main__":
