@@ -7,8 +7,13 @@ import torch
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.utils import shuffle
 from LSTMmodel import LSTMmodel
 from LSTMtrain import LSTMtrain
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+from tensorflow.keras.models import load_model
 
 
 
@@ -24,32 +29,62 @@ def main():
     #    pathToModel = "models/yolo/COCO pretrained/yolo11n.pt"
 
     #get input and visualize
+    
     inputType = input("Enter input type (video/photo): ").strip().lower()
     if inputType == "video":
-        X = []
-        y = []
-        # Get path to video
-        #path_to_video = input("Enter path to video: ")                              #src/test/test_inputs/short.mp4         src/test/test_inputs/kickflip0.mov
+        isTraining = input("Is this training? (y/n): ").strip().lower()
+        if isTraining == "y":
+            X = []
+            y = []
+            # Get path to video
+            #path_to_video = input("Enter path to video: ")                              #src/test/test_inputs/short.mp4         src/test/test_inputs/kickflip0.mov
 
-        extractFeatures(1, 2, X, y)     #trickID = 1 -> trickName = Kickflip
-        extractFeatures(0, 2, X, y)     #trickID = 0 -> trickName = Ollie
+            extractFeatures(1, 114, X, y)     #trickID = 1 -> trickName = Kickflip          #114
+            extractFeatures(0, 108, X, y)     #trickID = 0 -> trickName = Ollie             #108
 
-        
-        X = np.array(X)
-        y = np.array(y)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
-        #X_train = X_train.reshape((X_train.shape[0], X_train.shape[1]*X_train.shape[2], 1))
-        #X_test = X_test.reshape((X_test.shape[0], X_test.shape[1]*X_test.shape[2], 1))
-        print("X_train:\n", X_train)
-        print("y_train:\n", y_train)
-        print("X_test:\n", X_test)
-        print("y_test:\n", y_test)
+            
+            X = np.array(X)
+            y = np.array(y)
 
-        #training
-        model = LSTMmodel(X_train[0].shape, 1)
-        trainer = LSTMtrain(model, 'lstm')
-        trainer.train(X_train, y_train)
-        
+            #shuffling the data
+            X, y = shuffle(X, y)
+
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+            #X_train = X_train.reshape((X_train.shape[0], X_train.shape[1]*X_train.shape[2], 1))
+            #X_test = X_test.reshape((X_test.shape[0], X_test.shape[1]*X_test.shape[2], 1))
+            print("X_train:\n", X_train)
+            print("y_train:\n", y_train)
+            print("X_test:\n", X_test)
+            print("y_test:\n", y_test)
+
+
+            #training
+            model = LSTMmodel(X_train[0].shape, 1)
+            trainer = LSTMtrain(model, 'lstm')
+            trainer.train(X_train, y_train)
+
+            predictions = model.model.predict(X_test)
+        else:
+            loadedModel = load_model("data/checkpoints/lstm.001-0.000.hdf5.keras")
+            predictions = loadedModel.predict(X_test)
+
+        print("REAL:", y_test)
+        for prediction in predictions:
+            if prediction[0] < 0.5:
+                prediction[0] = 0
+            else:
+                prediction[0] = 1
+        print("PREDICTION:", predictions)
+        print ("ACCURACY:", accuracy_score(y_test, predictions))
+        print ("RECALL:", recall_score(y_test, predictions, average='weighted'))
+        print ("PRECISION:", precision_score(y_test, predictions, average='weighted'))
+        print ("F1:", f1_score(y_test, predictions, average='weighted'))
+        confusionMatrix = confusion_matrix(y_test, predictions)
+        sns.heatmap(confusionMatrix, annot=True, fmt='d')
+        plt.xlabel('Predicted')
+        plt.ylabel('True')
+        plt.title('Confusion Matrix')
+        plt.show()
 
         # Create a detectionVisualizer instance and visualize the video
         #visualizer = detectionVisualizer(results=results)
@@ -80,7 +115,7 @@ def main():
         #positionDataFrame["class"] = results[0].boxes.cls.cpu().numpy()
         print(positionDataFrame)
 
-        # Create a detectionVisualizer instance and visualize the image
+        # Create a detectionVisualizer instance and visualize the imagegit basic commands
         visualizer = detectionVisualizer(results=results)
         visualizer.visualizePhoto()
     
@@ -105,13 +140,15 @@ def extractFeatures(trickID, endRange, X, y):                       #trickName =
 
         fullDataFrame = detector.createFullDataFrame(positionDataFrame, poseDataFrame)          #create full dataframe
         fullDataFrame = detector.cleanUpFullDataFrame(fullDataFrame)          #clean up full dataframe
-                                                                                                                   #TODO - ensure homogenius data frame shapes (amount of rows)
         #finalDataFrame = detector.createFinalDataFrame(fullDataFrame)          #create final dataframe
         print(fullDataFrame)
-        fullDataFrame.dropna(inplace=True)          #drop rows with NaN values
+        fullDataFrame = fullDataFrame.dropna(how = 'any')          #drop rows with NaN values
+        if(fullDataFrame.shape[0] < 30):          #if dataframe has less then 30 rows, skip
+            print("Not enough quality data, skipping...")
+            continue
         scaler = MinMaxScaler(feature_range=(0,1))
-        scaledFullDataFrame = scaler.fit_transform(fullDataFrame.iloc[:10].astype(np.float32).values)          #scale data to 0-1
-        X.append(scaledFullDataFrame)
+        scaledFullDataFrame = scaler.fit_transform(fullDataFrame.iloc[:30].astype(np.float32).values)          #scale data to 0-1
+        X.append(scaledFullDataFrame)          #append data to X
         y.append(trickID)          #append label to y
         
 

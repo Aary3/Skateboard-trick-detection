@@ -18,7 +18,7 @@ class VideoDetector:
         self.classes = classes                                   #set classes to track
 
     def detect(self, video_path):                           #video path can also be a youtube link
-        results = self.model.track(video_path, classes=self.classes, show=True, verbose=True, stream=True)  # 0: person, 36: skateboard
+        results = self.model.track(video_path, classes=self.classes, show=False, verbose=True, stream=True)  # 0: person, 36: skateboard
         return results
     
     def createPoseDataFrame(self, results):
