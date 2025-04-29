@@ -49,7 +49,7 @@ def main():
             #shuffling the data
             X, y = shuffle(X, y)
 
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=True)
             #X_train = X_train.reshape((X_train.shape[0], X_train.shape[1]*X_train.shape[2], 1))
             #X_test = X_test.reshape((X_test.shape[0], X_test.shape[1]*X_test.shape[2], 1))
             print("X_train:\n", X_train)
@@ -60,7 +60,7 @@ def main():
 
             #training
             model = LSTMmodel(X_train[0].shape, 1)
-            trainer = LSTMtrain(model, 'lstm')
+            trainer = LSTMtrain(model, 'lstm', batch_size=32, epochs=100, validation_split=0.2)
             trainer.train(X_train, y_train)
 
             predictions = model.model.predict(X_test)
@@ -142,12 +142,13 @@ def extractFeatures(trickID, endRange, X, y):                       #trickName =
         fullDataFrame = detector.cleanUpFullDataFrame(fullDataFrame)          #clean up full dataframe
         #finalDataFrame = detector.createFinalDataFrame(fullDataFrame)          #create final dataframe
         print(fullDataFrame)
-        fullDataFrame = fullDataFrame.dropna(how = 'any')          #drop rows with NaN values
-        if(fullDataFrame.shape[0] < 30):          #if dataframe has less then 30 rows, skip
+        #fullDataFrame = fullDataFrame.dropna(how = 'any')          #drop rows with NaN values
+        fullDataFrame = fullDataFrame.fillna(0)          #fill NaN values with 0
+        if(fullDataFrame.shape[0] < 60):          #if dataframe has less then 30 rows, skip
             print("Not enough quality data, skipping...")
             continue
         scaler = MinMaxScaler(feature_range=(0,1))
-        scaledFullDataFrame = scaler.fit_transform(fullDataFrame.iloc[:30].astype(np.float32).values)          #scale data to 0-1
+        scaledFullDataFrame = scaler.fit_transform(fullDataFrame.iloc[:60].astype(np.float32).values)          #scale data to 0-1
         X.append(scaledFullDataFrame)          #append data to X
         y.append(trickID)          #append label to y
         

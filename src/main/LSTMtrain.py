@@ -14,10 +14,10 @@ class LSTMtrain:
         self.epochs = epochs
         self.validation_split = validation_split
         self.callbacks = []
-        self.add_callback(self.callbacks)
+        self.add_callback()
         self.history = None
 
-    def add_callback(self, callback):
+    def add_callback(self):
         checkpointer = ModelCheckpoint(
         filepath=os.path.join('data', 'checkpoints', self.modelName + \
             '.{epoch:03d}-{val_loss:.3f}.hdf5.keras'),
@@ -26,7 +26,7 @@ class LSTMtrain:
 
         tb = TensorBoard(log_dir=os.path.join('data', 'logs', self.modelName))
 
-        early_stopper = EarlyStopping(patience=5)
+        early_stopper = EarlyStopping(patience=10, restore_best_weights=False)
 
         timestamp = time.time()
         csv_logger = CSVLogger(os.path.join('data', 'logs', self.modelName + '-' + 'training-' + \
