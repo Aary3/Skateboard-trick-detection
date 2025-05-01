@@ -11,7 +11,7 @@ class LSTMmodel:
         self.input_shape = input_shape
         self.num_classes = num_classes
         self.model = self.build_model()
-        self.model.compile(loss='binary_crossentropy', optimizer=Adam(learning_rate=1e-3, decay=1e-6), metrics=['accuracy'])           #categorical_crossentropy for more than 2 classes or binary_crossentropy for 2 classes, sparse_categorical_crossentropy for 2 classes with one-hot encoding  #learning_rate=1e-5, decay=1e-6
+        self.model.compile(loss='binary_crossentropy', optimizer=Adam(learning_rate=1e-6, decay=1e-6), metrics=['accuracy'])           #categorical_crossentropy for more than 2 classes or binary_crossentropy for 2 classes, sparse_categorical_crossentropy for 2 classes with one-hot encoding  #learning_rate=1e-5, decay=1e-6
         self.sequence_length = sequence_length
 
     def build_model(self):

@@ -14,6 +14,7 @@ from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_sc
 import seaborn as sns
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 
 
@@ -39,10 +40,10 @@ def main():
             # Get path to video
             #path_to_video = input("Enter path to video: ")                              #src/test/test_inputs/short.mp4         src/test/test_inputs/kickflip0.mov
 
-            extractFeatures(1, 114, X, y)     #trickID = 1 -> trickName = Kickflip          #114
-            extractFeatures(0, 108, X, y)     #trickID = 0 -> trickName = Ollie             #108
+            extractFeatures(1, 100, X, y)     #trickID = 1 -> trickName = Kickflip          #114
+            extractFeatures(0, 100, X, y)     #trickID = 0 -> trickName = Ollie             #108
 
-            
+            X = pad_sequences(X, dtype=float, padding='pre')
             X = np.array(X)
             y = np.array(y)
 
@@ -60,7 +61,7 @@ def main():
 
             #training
             model = LSTMmodel(X_train[0].shape, 1)
-            trainer = LSTMtrain(model, 'lstm', batch_size=32, epochs=100, validation_split=0.2)
+            trainer = LSTMtrain(model, 'lstm', batch_size=32, epochs=500, validation_split=0.2)
             trainer.train(X_train, y_train)
 
             predictions = model.model.predict(X_test)
@@ -69,6 +70,7 @@ def main():
             predictions = loadedModel.predict(X_test)
 
         print("REAL:", y_test)
+        print("FIRST PREDICTIONS: ", predictions)
         for prediction in predictions:
             if prediction[0] < 0.5:
                 prediction[0] = 0
@@ -144,11 +146,11 @@ def extractFeatures(trickID, endRange, X, y):                       #trickName =
         print(fullDataFrame)
         #fullDataFrame = fullDataFrame.dropna(how = 'any')          #drop rows with NaN values
         fullDataFrame = fullDataFrame.fillna(0)          #fill NaN values with 0
-        if(fullDataFrame.shape[0] < 60):          #if dataframe has less then 30 rows, skip
-            print("Not enough quality data, skipping...")
-            continue
-        scaler = MinMaxScaler(feature_range=(0,1))
-        scaledFullDataFrame = scaler.fit_transform(fullDataFrame.iloc[:60].astype(np.float32).values)          #scale data to 0-1
+        #if(fullDataFrame.shape[0] < 30):          #if dataframe has less then 30 rows, skip
+        #    print("Not enough quality data, skipping...")
+        #    continue
+        scaler = MinMaxScaler(feature_range=(-1,1))
+        scaledFullDataFrame = scaler.fit_transform(fullDataFrame.astype(np.float32).values)          #scale data to 0-1
         X.append(scaledFullDataFrame)          #append data to X
         y.append(trickID)          #append label to y
         
