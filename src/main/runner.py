@@ -47,10 +47,10 @@ def main():
             #X = pad_sequences(X, dtype=float, padding='pre')
             #X = np.array(X)
             #y = np.array(y)
-            #np.save(os.path.join("data", "X.npy"), X)
-            #np.save(os.path.join("data", "y.npy"), y)
-            X = np.load(os.path.join("data", "X.npy"))
-            y = np.load(os.path.join("data", "y.npy"))
+            #np.save(os.path.join("data", "X_0_1.npy"), X)
+            #np.save(os.path.join("data", "y_0_1.npy"), y)
+            X = np.load(os.path.join("data", "X_0_1.npy"))
+            y = np.load(os.path.join("data", "y_0_1.npy"))
 
             #shuffling the data
             X, y = shuffle(X, y)
@@ -74,7 +74,7 @@ def main():
         else:
             X = []
             path_to_video = input("Enter path to video: ")                              
-            loadedModel = load_model("models/lstm.770-0.527.hdf5.keras")
+            loadedModel = load_model("models/lstm.1323-0.498.hdf5.keras")
             # Create a VideoDetector instance
             detector = VideoDetector(model_path="models/yolo/COCO pretrained/yolo11n-pose.pt")
             detector.setClassesToTrack([0])                               # 0: person
@@ -96,7 +96,7 @@ def main():
             #if(fullDataFrame.shape[0] < 30):          #if dataframe has less then 30 rows, skip
             #    print("Not enough quality data, skipping...")
             #    continue
-            scaler = MinMaxScaler(feature_range=(-1,1))
+            scaler = MinMaxScaler(feature_range=(0,1))
             scaledFullDataFrame = scaler.fit_transform(fullDataFrame.astype(np.float32).values)          #scale data to 0-1
             X.append(scaledFullDataFrame)
             X = np.array(X)
@@ -188,7 +188,7 @@ def extractFeatures(trickID, endRange, X, y):                       #trickName =
         #if(fullDataFrame.shape[0] < 30):          #if dataframe has less then 30 rows, skip
         #    print("Not enough quality data, skipping...")
         #    continue
-        scaler = MinMaxScaler(feature_range=(-1,1))
+        scaler = MinMaxScaler(feature_range=(0,1))
         scaledFullDataFrame = scaler.fit_transform(fullDataFrame.astype(np.float32).values)          #scale data to 0-1
         X.append(scaledFullDataFrame)          #append data to X
         y.append(trickID)          #append label to y
