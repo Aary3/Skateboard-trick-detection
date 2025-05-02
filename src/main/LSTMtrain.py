@@ -26,7 +26,7 @@ class LSTMtrain:
 
         tb = TensorBoard(log_dir=os.path.join('data', 'logs', self.modelName))
 
-        early_stopper = EarlyStopping(patience=10, restore_best_weights=False)
+        early_stopper = EarlyStopping(patience=15, restore_best_weights=False)
 
         timestamp = time.time()
         csv_logger = CSVLogger(os.path.join('data', 'logs', self.modelName + '-' + 'training-' + \

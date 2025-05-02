@@ -15,6 +15,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+import os
 
 
 
@@ -40,12 +41,16 @@ def main():
             # Get path to video
             #path_to_video = input("Enter path to video: ")                              #src/test/test_inputs/short.mp4         src/test/test_inputs/kickflip0.mov
 
-            extractFeatures(1, 100, X, y)     #trickID = 1 -> trickName = Kickflip          #114
-            extractFeatures(0, 100, X, y)     #trickID = 0 -> trickName = Ollie             #108
+            #extractFeatures(1, 100, X, y)     #trickID = 1 -> trickName = Kickflip          #114
+            #extractFeatures(0, 100, X, y)     #trickID = 0 -> trickName = Ollie             #108
 
-            X = pad_sequences(X, dtype=float, padding='pre')
-            X = np.array(X)
-            y = np.array(y)
+            #X = pad_sequences(X, dtype=float, padding='pre')
+            #X = np.array(X)
+            #y = np.array(y)
+            #np.save(os.path.join("data", "X.npy"), X)
+            #np.save(os.path.join("data", "y.npy"), y)
+            X = np.load(os.path.join("data", "X.npy"))
+            y = np.load(os.path.join("data", "y.npy"))
 
             #shuffling the data
             X, y = shuffle(X, y)
@@ -61,15 +66,49 @@ def main():
 
             #training
             model = LSTMmodel(X_train[0].shape, 1)
-            trainer = LSTMtrain(model, 'lstm', batch_size=32, epochs=500, validation_split=0.2)
+            trainer = LSTMtrain(model, 'lstm', batch_size=32, epochs=2000, validation_split=0.2)
             trainer.train(X_train, y_train)
 
-            predictions = model.model.predict(X_test)
+            #predictions = model.model.predict(X_test)
+            predictions = model.model.predict(X)
         else:
-            loadedModel = load_model("data/checkpoints/lstm.001-0.000.hdf5.keras")
-            predictions = loadedModel.predict(X_test)
+            X = []
+            path_to_video = input("Enter path to video: ")                              
+            loadedModel = load_model("models/lstm.770-0.527.hdf5.keras")
+            # Create a VideoDetector instance
+            detector = VideoDetector(model_path="models/yolo/COCO pretrained/yolo11n-pose.pt")
+            detector.setClassesToTrack([0])                               # 0: person
+            # Perform detection on the video
+            results = detector.detect(path_to_video)
+            poseDataFrame = detector.createPoseDataFrame(results)          #create pose dataframe
 
-        print("REAL:", y_test)
+            detector.setModel("models/yolo/COCO pretrained/yolo11n.pt")
+            detector.setClassesToTrack([36])                               # 36: skateboard
+            results = detector.detect(path_to_video)                                #detect again with normal model
+            positionDataFrame = detector.createPositionDataFrame(results)
+
+            fullDataFrame = detector.createFullDataFrame(positionDataFrame, poseDataFrame)          #create full dataframe
+            fullDataFrame = detector.cleanUpFullDataFrame(fullDataFrame)          #clean up full dataframe
+            #finalDataFrame = detector.createFinalDataFrame(fullDataFrame)          #create final dataframe
+            print(fullDataFrame)
+            #fullDataFrame = fullDataFrame.dropna(how = 'any')          #drop rows with NaN values
+            fullDataFrame = fullDataFrame.fillna(0)          #fill NaN values with 0
+            #if(fullDataFrame.shape[0] < 30):          #if dataframe has less then 30 rows, skip
+            #    print("Not enough quality data, skipping...")
+            #    continue
+            scaler = MinMaxScaler(feature_range=(-1,1))
+            scaledFullDataFrame = scaler.fit_transform(fullDataFrame.astype(np.float32).values)          #scale data to 0-1
+            X.append(scaledFullDataFrame)
+            X = np.array(X)
+            predictions = loadedModel.predict(X)
+            if predictions[0] < 0.5:
+                print("Ollie")
+            else:
+                print("Kickflip")
+            
+
+        #print("REAL:", y_test)
+        print("REAL: ", y)
         print("FIRST PREDICTIONS: ", predictions)
         for prediction in predictions:
             if prediction[0] < 0.5:
@@ -77,11 +116,11 @@ def main():
             else:
                 prediction[0] = 1
         print("PREDICTION:", predictions)
-        print ("ACCURACY:", accuracy_score(y_test, predictions))
-        print ("RECALL:", recall_score(y_test, predictions, average='weighted'))
-        print ("PRECISION:", precision_score(y_test, predictions, average='weighted'))
-        print ("F1:", f1_score(y_test, predictions, average='weighted'))
-        confusionMatrix = confusion_matrix(y_test, predictions)
+        print ("ACCURACY:", accuracy_score(y, predictions))
+        print ("RECALL:", recall_score(y, predictions, average='weighted'))
+        print ("PRECISION:", precision_score(y, predictions, average='weighted'))
+        print ("F1:", f1_score(y, predictions, average='weighted'))
+        confusionMatrix = confusion_matrix(y, predictions)
         sns.heatmap(confusionMatrix, annot=True, fmt='d')
         plt.xlabel('Predicted')
         plt.ylabel('True')
