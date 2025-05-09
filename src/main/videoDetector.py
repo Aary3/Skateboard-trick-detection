@@ -112,9 +112,11 @@ class VideoDetector:
     def createFinalDataFrame(self, fullDataFrame):
         positionDataFrame = fullDataFrame.iloc[:, :4]          #position data is in the first 4 columns
         positionDataFrame.dropna(inplace=True, how='any')            #remove rows with NaN values
+        #positionDataFrame = positionDataFrame.fillna(0)          #fill NaN values with 0
         positionDataFrame = positionDataFrame.reset_index(drop=True)
         poseDataFrame = fullDataFrame.iloc[:, 4:]              #pose data is in the last 4 columns
         poseDataFrame.dropna(inplace=True, how='any')            #remove rows with NaN values
+        #poseDataFrame = poseDataFrame.fillna(0)          #fill NaN values with 0
         poseDataFrame = poseDataFrame.reset_index(drop=True)
 
         positionTensor = torch.tensor(positionDataFrame.values, dtype=torch.float32)
