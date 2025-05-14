@@ -41,17 +41,17 @@ def main():
             # Get path to video
             #path_to_video = input("Enter path to video: ")                              #src/test/test_inputs/short.mp4         src/test/test_inputs/kickflip0.mov
 
-            #extractFeatures(1, 100, X, y)     #trickID = 1 -> trickName = Kickflip          #114
-            #extractFeatures(0, 100, X, y)     #trickID = 0 -> trickName = Ollie             #108
+            #extractFeatures(1, 207, X, y)     #trickID = 1 -> trickName = Kickflip          #114
+            #extractFeatures(0, 204, X, y)     #trickID = 0 -> trickName = Ollie             #108
 
             #X = pad_sequences(X, dtype=float, padding='pre')
             #X = np.array(X)
             #y = np.array(y)
-            #np.save(os.path.join("data", "X_0_1_backup.npy"), X)
-            #np.save(os.path.join("data", "y_0_1_backup.npy"), y)
+            #np.save(os.path.join("data", "X_0_1_new.npy"), X)
+            #np.save(os.path.join("data", "y_0_1_new.npy"), y)
 
-            X = np.load(os.path.join("data", "X_0_1_backup.npy"))
-            y = np.load(os.path.join("data", "y_0_1_backup.npy"))
+            X = np.load(os.path.join("data", "X_0_1_new.npy"))         #X_0_1_backup.npy
+            y = np.load(os.path.join("data", "y_0_1_new.npy"))         #y_0_1_backup.npy
 
             #shuffling the data
             X, y = shuffle(X, y)
@@ -67,7 +67,7 @@ def main():
 
             #training
             model = LSTMmodel(X_train[0].shape, 1)
-            trainer = LSTMtrain(model, 'lstm', batch_size=32, epochs=3000, validation_split=0.2)
+            trainer = LSTMtrain(model, 'lstm', batch_size=32, epochs=10000, validation_split=0.2)
             #trainer.model.model = load_model("models/lstm.1323-0.498.hdf5.keras")
             trainer.train(X_train, y_train)
 
@@ -168,7 +168,7 @@ def extractFeatures(trickID, endRange, X, y):                       #trickName =
     elif trickID == 1:
         trickName = "Kickflip"
     for i in range(0, endRange):
-        path_to_video = f"src/test/Tricks_BACKUP/{trickName}/{trickName}{i}.mov"
+        path_to_video = f"src/test/Tricks/{trickName}/{trickName}{i}.mov"
         # Create a VideoDetector instance
         detector = VideoDetector(model_path="models/yolo/COCO pretrained/yolo11n-pose.pt")
         detector.setClassesToTrack([0])                               # 0: person
