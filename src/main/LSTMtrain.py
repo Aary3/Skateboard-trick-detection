@@ -1,9 +1,7 @@
 from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping, CSVLogger
-from LSTMmodel import LSTMmodel
 import time
 import os.path
 import os
-import sys
 import tensorflow as tf
 
 class LSTMtrain:
@@ -26,7 +24,7 @@ class LSTMtrain:
 
         tb = TensorBoard(log_dir=os.path.join('data', 'logs', self.modelName))
 
-        early_stopper = EarlyStopping(patience=100, restore_best_weights=True, start_from_epoch=20) #20 patience
+        early_stopper = EarlyStopping(patience=40000, restore_best_weights=True, start_from_epoch=20)           #20 patience
 
         timestamp = time.time()
         csv_logger = CSVLogger(os.path.join('data', 'logs', self.modelName + '-' + 'training-' + \

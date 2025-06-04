@@ -16,19 +16,15 @@ class detectionVisualizer:
     def visualizeVideo(self, path_to_video):
         # Display the video with detections
         output_filename = path_to_video.replace('.mp4   ', '_output.avi')
-        # output_filename = "c:/Users/piotr/OneDrive/Pulpit/YOLo/testout.avi"
         fps = 8  # Adjust based on input video
-        frame_size = (640, 384)  # Modify based on your video resolution
+        frame_size = (640, 384)  # Modify based on video resolution
 
-        # Define VideoWriter
         fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Use 'MP4V' for .mp4
         out = cv2.VideoWriter(output_filename, fourcc, fps, frame_size)
 
-        # Iterate over results and save frames
         for result in self.results:
             frame = result.plot()  # Get the annotated frame
             frame = cv2.resize(frame, frame_size)  # Ensure consistent frame size
             out.write(frame)
 
-        # Release video writer
         out.release()
